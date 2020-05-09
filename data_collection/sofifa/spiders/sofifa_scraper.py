@@ -1,10 +1,9 @@
 import scrapy
+from collections import OrderedDict
 
 class QuotesSpider(scrapy.Spider):
     name = "sofifa"
-
     start_urls = [f'https://sofifa.com/?offset={offset}' for offset in range(0, 20000, 60)]
-
 
     def parse(self, response):
         """parse the list of players on each page in start_urls, collect links to each player profile"""
@@ -17,21 +16,23 @@ class QuotesSpider(scrapy.Spider):
                 # link += "&hl=en-US&layout=old" if "?" in link else "?hl=en-US&layout=old"
                 yield response.follow(link, self.parse_player)
 
-
     def parse_player(self, response):
-        """parse the player profile page and collect various attributes and identifiers"""
-        data = {
-            'link': response.url,
-            'short_name': response.xpath('//h1/text()')[0].get(),
-            'name': response.xpath('//h1/text()')[1].get().split("(")[0].strip(),
-            'country': response.xpath('//div[contains(@class,"meta bp3-text-overflow-ellip")]/a/@title').get(),
-            'country_link': response.xpath('//div[contains(@class,"meta bp3-text-overflow-ellip")]/a/@href').get(),
-            'age': response.xpath('//div[contains(@class,"meta bp3-text-overflow-ellip")]/text()')[-1].get().split("y.o.")[0].strip()
-        }
+        """
+        parse the player profile page and collect various attributes and identifiers
+        """
 
         #--------------------
         # COLLECT NAME, COUNTRY, AGE
         #--------------------
+        data = OrderedDict()
+        data['link'] = response.url,
+        data['short_name'] = response.xpath('//h1/text()')[0].get(),
+        data['name'] = response.xpath('//h1/text()')[1].get().split("(")[0].strip(),
+        data['country'] = response.xpath('//div[contains(@class,"meta bp3-text-overflow-ellip")]/a/@title').get(),
+        data['country_link'] = response.xpath('//div[contains(@class,"meta bp3-text-overflow-ellip")]/a/@href').get(),
+        data['age'] = response.xpath('//div[contains(@class,"meta bp3-text-overflow-ellip")]/text()')[-1].get().split("y.o.")[0].strip()
+        clubs = response.xpath('//h5/a/text()')
+        data['club'] = clubs[0].get() if len(clubs) > 0 else ""
 
         #--------------------
         # COLLECT OVERAL RATINGS
@@ -59,12 +60,13 @@ class QuotesSpider(scrapy.Spider):
                     'Acceleration', 'Sprint Speed', 'Agility', 'Reactions', 'Balance',
                     'Shot Power', 'Jumping', 'Stamina', 'Strength', 'Long Shots',
                     'Aggression', 'Interceptions', 'Positioning', 'Vision', 'Penalties', 'Composure',
-                    'Defensive Awareness', 'Standing Tackle', 'Sliding Tackle',
+                    'Marking', 'Standing Tackle', 'Sliding Tackle',
                     'GK Diving', 'GK Handling', 'GK Kicking', 'GK Positioning', 'GK Reflexes']
 
         # collect the player attributes - note that we only want the last len(ATTRIBUTES) instances from the xpath result
+        # 1 offset in newest sofifa version
         attrs = response.xpath('//li/span[contains(@class,"bp3-tag")]/text()').extract()[-len(ATTRIBUTES)-1:-1]
         assert len(attrs) == len(ATTRIBUTES), attrs
         for index, attr in enumerate(attrs):
-            data[ATTRIBUTES[index]]=attr
+            data[ATTRIBUTES[index]] = attr
         yield data

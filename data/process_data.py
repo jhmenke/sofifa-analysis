@@ -6,10 +6,10 @@ Cleaning steps include:
     - imputing the average 'value' or 'wage for players with missing data
     - reordering and dropping uncessary columns
 """
-import pandas as pd
-import numpy as np
-
 import logging
+
+import numpy as np
+import pandas as pd
 
 
 def clean_money_values(money):
@@ -21,7 +21,6 @@ def clean_money_values(money):
         Returns: (int)
             Integer converted into consistent base units of €
     """
-    
     suffix = money[-1]
     if suffix == "M":
         money =  float(money[1:-1]) * 1000000
@@ -30,9 +29,9 @@ def clean_money_values(money):
     else:
         #if the value or wage is €0, return nan
         return np.nan
-    
     return int(money)
-    
+
+
 def clean_raw_df(df):
     """Cleans the raw data
     
@@ -48,18 +47,19 @@ def clean_raw_df(df):
     assert df['link'].nunique() == len(df), "Duplicate data"
 
     #-----------------
-    #create player_id
+    # create player_id
     #-----------------
     df['player_id'] = df['link'].apply(lambda x: x.split('/')[4])
     assert df['player_id'].nunique() == len(df), "Non-unique player id"
+    df['player_id'] = df['player_id'].astype('int64')
 
     #-----------------
-    #create country_id
+    # create country_id
     #-----------------
     df['country_id'] = df['country_link'].apply(lambda x: x.split('=')[-1])
 
     #-----------------
-    #clean value and wage column
+    # clean value and wage column
     #-----------------
     df['value_clean'] = df['value'].apply(clean_money_values)
     df['wage_clean'] = df['wage'].apply(clean_money_values)
@@ -68,11 +68,11 @@ def clean_raw_df(df):
     df['value_clean'] = df.groupby('overall_rating')['value_clean'].transform(lambda x: x.fillna(x.mean()))
     df['wage_clean'] = df.groupby('overall_rating')['wage_clean'].transform(lambda x: x.fillna(x.mean()))
 
-    #if there are still nan, replace with 0 (these tend to be very low ranked players)
-    df[['value_clean','wage_clean']] = df[['value_clean','wage_clean']].fillna(0)
+    # if there are still nan, replace with 0 (these tend to be very low ranked players)
+    df[['value_clean', 'wage_clean']] = df[['value_clean', 'wage_clean']].fillna(0)
 
     #-----------------
-    #Reorder columns for final dataframe
+    # Reorder columns for final dataframe
     #-----------------
     keep_cols = ['player_id','name', 'age', 'overall_rating','potential',
                  'likes', 'dislikes','followers','value_clean','wage_clean']
@@ -83,7 +83,6 @@ def clean_raw_df(df):
                 'Strength','Long Shots','Aggression','Interceptions','Positioning','Vision',
                 'Penalties','Composure','Marking','Standing Tackle','Sliding Tackle','GK Diving',
                 'GK Handling','GK Kicking','GK Positioning','GK Reflexes']
-
 
     final_df = df[keep_cols + ATTRIBUTES]
     assert final_df.isnull().sum().all() == 0 
@@ -96,9 +95,10 @@ def join_positions_data(df):
     
     df['player_id'] = df['player_id'].astype('int64')
     
-    merged_df = df.merge(kaggle_df,how='inner',
-             left_on=['player_id'],
-             right_on=['ID'])
+    merged_df = df.merge(kaggle_df,
+                         how='inner',
+                         left_on=['player_id'],
+                         right_on=['ID'])
     
     del merged_df['ID']
     
@@ -106,23 +106,13 @@ def join_positions_data(df):
 
 
 if __name__ == '__main__':
-
     logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S',level=logging.INFO)
-
-    df = pd.read_csv("0. raw/data.csv")
-
+    df_ = pd.read_csv("0. raw/data.csv")
     logging.info('Cleaning data...')
-
-    clean_df = clean_raw_df(df)
-
+    clean_df_ = clean_raw_df(df_)
     logging.info('Dataframe cleaning completed')
-    
-    final_df = join_positions_data(df)
-    
-    logging.info('Dataframe join completed')
-
+    # final_df_ = join_positions_data(df_)
+    # logging.info('Dataframe join completed')
     #save to processed data folder
-    pd.DataFrame(final_df).to_csv("1. processed/data_clean.csv",index=False,encoding='utf-8-sig')
-    
+    pd.DataFrame(clean_df_).to_csv("1. processed/data_clean.csv", index=False, encoding='utf-8-sig')
     logging.info("File successfully saved in 'processed' folder")
-
