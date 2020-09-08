@@ -46,6 +46,12 @@ def clean_raw_df(df):
     assert df.isnull().sum().all() == 0, "There is missing data"
     assert df['link'].nunique() == len(df), "Duplicate data"
 
+    # tuples to str
+    for c in ("link", "short_name", "name", "country", "country_link"):
+        # df[c] = df[c].apply(lambda r: r[0] if isinstance(r, tuple) else r)
+        if isinstance(df[c].iloc[0], tuple):
+            df[c] = df[c].apply(lambda r: r[0])
+
     #-----------------
     # create player_id
     #-----------------
