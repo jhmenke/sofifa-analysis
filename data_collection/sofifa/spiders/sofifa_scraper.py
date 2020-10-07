@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 class QuotesSpider(scrapy.Spider):
     name = "sofifa"
-    start_urls = [f'https://sofifa.com/?offset={offset}' for offset in range(0, 20000, 60)]
+    start_urls = [f'https://sofifa.com/?offset={offset}' for offset in range(0, 18500, 60)]
 
     def parse(self, response):
         processed_links = open('links_collected.txt').read()
