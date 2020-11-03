@@ -48,16 +48,18 @@ def clean_raw_df(df):
 
     # tuples to str
     for c in ("link", "short_name", "name", "country", "country_link"):
-        # df[c] = df[c].apply(lambda r: r[0] if isinstance(r, tuple) else r)
         if isinstance(df[c].iloc[0], tuple):
             df[c] = df[c].apply(lambda r: r[0])
 
     #-----------------
     # create player_id
     #-----------------
-    df['player_id'] = df['link'].apply(lambda x: x.split('/')[4])
+    df['player_id'] = df['link'].apply(lambda x: int(x.split('/')[4]))
+
+    print(f"DF length with possible duplicates: {len(df)}")
+    df.drop_duplicates(subset=["player_id"], keep="last", ignore_index=True, inplace=True)
+    print(f"DF length with deduplicated player id: {len(df)}")
     assert df['player_id'].nunique() == len(df), "Non-unique player id"
-    df['player_id'] = df['player_id'].astype('int64')
 
     #-----------------
     # create country_id
@@ -95,30 +97,13 @@ def clean_raw_df(df):
 
     return final_df
 
-def join_positions_data(df):
-    kaggle_df = pd.read_csv("0. raw/kaggle_data.csv")
-    kaggle_df = kaggle_df[['ID','Position']]
-    
-    df['player_id'] = df['player_id'].astype('int64')
-    
-    merged_df = df.merge(kaggle_df,
-                         how='inner',
-                         left_on=['player_id'],
-                         right_on=['ID'])
-    
-    del merged_df['ID']
-    
-    return merged_df
-
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S',level=logging.INFO)
-    df_ = pd.read_csv("0. raw/data.csv")
+    df_ = pd.read_csv("../data_collection/data.csv")
     logging.info('Cleaning data...')
     clean_df_ = clean_raw_df(df_)
     logging.info('Dataframe cleaning completed')
-    # final_df_ = join_positions_data(df_)
-    # logging.info('Dataframe join completed')
     #save to processed data folder
     pd.DataFrame(clean_df_).to_csv("1. processed/data_clean.csv", index=False, encoding='utf-8-sig')
     logging.info("File successfully saved in 'processed' folder")
